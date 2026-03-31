@@ -1,0 +1,38 @@
+:root {
+  --bg-1: #e7f7ee;
+  --bg-2: #c8efd7;
+  --panel: #0f3b2e;
+  --text: #f4fff8;
+  --accent: #63d98a;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  width: 100%;
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  overflow: hidden;
+  font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+  background: radial-gradient(circle at 15% 20%, var(--bg-1), var(--bg-2));
+  color: var(--panel);
+}
+
+#game {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+}
+
+canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+}
