@@ -1,0 +1,20 @@
+@startuml
+title ECO GUARDIAN - Comunicacao no Gameplay
+
+object Jogador
+object "update.js" as Update
+object "player.js" as Player
+object "boss.js" as Boss
+object "level-builder.js" as LevelBuilder
+object "state.js" as State
+object "game-lifecycle.js" as Lifecycle
+
+Jogador -> Update : 1: input (movimento/tiro/pause)
+Update -> State : 2: validar estado atual
+Update -> Player : 3: updatePlayer(scene)
+Update -> Boss : 4: updateBoss(scene)
+Update -> Boss : 5: bossAttackPlayer(scene)
+Update -> LevelBuilder : 6: overlaps e progresso de fase
+LevelBuilder -> Lifecycle : 7: triggerWin()/triggerEnd()
+Lifecycle -> State : 8: alterar fim de jogo
+@enduml

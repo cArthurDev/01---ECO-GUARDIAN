@@ -1,0 +1,118 @@
+@startuml
+title ECO GUARDIAN - Diagrama de Classes (modulos JS)
+skinparam classAttributeIconSize 0
+
+class game_js <<module>> {
+  +config
+}
+
+class create_js <<module>> {
+  +create()
+}
+
+class preload_js <<module>> {
+  +FOOD_TEXTURE_KEYS
+  +preload()
+}
+
+class update_js <<module>> {
+  +update()
+  -shootBullet(scene)
+  -cullOffscreenBullets(scene)
+}
+
+class state_js <<module>> {
+  +state
+}
+
+class game_lifecycle_js <<module>> {
+  +startGame(scene, buildLevelFn)
+  +startGameAtLevel(scene, buildLevelFn, levelIndex)
+  +togglePause(scene)
+  +triggerEnd(scene, message)
+  +triggerWin(scene)
+  +formatElapsedTime(totalSeconds)
+}
+
+class level_builder_js <<module>> {
+  +buildLevel(scene, levelIndex)
+  +goToNextLevel(scene)
+}
+
+class player_js <<module>> {
+  +createPlayer(scene, spawnPoint, levelIndex)
+  +updatePlayer(scene)
+}
+
+class boss_js <<module>> {
+  +spawnBoss(scene, levelIndex)
+  +updateBoss(scene)
+  +bossAttackPlayer(scene)
+  +damageBoss(scene, boss, amount)
+  +losePlayerLife(scene, sourceX, options)
+  +destroyBoss()
+}
+
+class levels_js <<module>> {
+  +LEVELS
+  +PLAYER_TEXTURES
+}
+
+class constants_js <<module>> {
+  +TILE_SIZE
+  +PIXEL_SCALE
+  +PLAYER_SPEED
+  +PLAYER_JUMP
+}
+
+class main_menu_js <<module>> {
+  +buildMainMenu(scene, w, h, onStart)
+}
+
+class pause_overlay_js <<module>> {
+  +buildPauseOverlay(scene, w, h)
+}
+
+class win_screen_js <<module>> {
+  +buildWinScreen(scene, w, h)
+}
+
+class video_player_js <<module>> {
+  +playVideo(videoPath, onComplete)
+  +stopVideo()
+}
+
+game_js --> preload_js
+game_js --> create_js
+game_js --> update_js
+
+create_js --> state_js
+create_js --> main_menu_js
+create_js --> pause_overlay_js
+create_js --> win_screen_js
+create_js --> game_lifecycle_js
+create_js --> level_builder_js
+
+update_js --> state_js
+update_js --> player_js
+update_js --> boss_js
+update_js --> game_lifecycle_js
+
+level_builder_js --> state_js
+level_builder_js --> constants_js
+level_builder_js --> levels_js
+level_builder_js --> preload_js
+level_builder_js --> player_js
+level_builder_js --> boss_js
+level_builder_js --> game_lifecycle_js
+
+player_js --> state_js
+player_js --> constants_js
+player_js --> levels_js
+player_js --> game_lifecycle_js
+
+boss_js --> state_js
+boss_js --> game_lifecycle_js
+game_lifecycle_js --> state_js
+game_lifecycle_js --> video_player_js
+@enduml

@@ -1,0 +1,40 @@
+@startuml
+title ECO GUARDIAN - Diagrama de Caso de Uso
+left to right direction
+skinparam packageStyle rectangle
+
+actor Jogador
+actor "LocalStorage" as Storage
+
+rectangle "ECO GUARDIAN" {
+  usecase "Iniciar partida" as UC_Start
+  usecase "Escolher nickname" as UC_Nick
+  usecase "Jogar fase" as UC_Play
+  usecase "Pausar/Retomar" as UC_Pause
+  usecase "Atirar" as UC_Shoot
+  usecase "Coletar itens" as UC_Coin
+  usecase "Perder vida" as UC_Life
+  usecase "Avancar de fase" as UC_Next
+  usecase "Vencer jogo" as UC_Win
+  usecase "Ver ranking" as UC_ViewRank
+  usecase "Salvar ranking" as UC_SaveRank
+  usecase "Reiniciar partida" as UC_Restart
+}
+
+Jogador --> UC_Start
+Jogador --> UC_Play
+Jogador --> UC_Pause
+Jogador --> UC_Shoot
+Jogador --> UC_Coin
+Jogador --> UC_Restart
+
+UC_Start .> UC_Nick : <<include>>
+UC_Play .> UC_Life : <<include>>
+UC_Play .> UC_Next : <<include>>
+UC_Next .> UC_Win : <<extend>>
+UC_Win .> UC_ViewRank : <<include>>
+UC_Win .> UC_SaveRank : <<include>>
+
+Storage --> UC_ViewRank
+Storage --> UC_SaveRank
+@enduml

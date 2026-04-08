@@ -1,0 +1,28 @@
+@startuml
+title ECO GUARDIAN - Diagrama de Objetos (runtime)
+
+object "scene: Phaser.Scene" as scene
+object "state: GlobalState" as st {
+  hasGameStarted = true
+  currentLevelIndex = 1
+  score = 120
+  playerLives = 2
+  isPaused = false
+}
+object "player: Phaser.Physics.Arcade.Sprite" as player
+object "bosses: Phaser.Physics.Arcade.Group" as bosses
+object "coins: Phaser.Physics.Arcade.Group" as coins
+object "platforms: Phaser.Physics.Arcade.StaticGroup" as platforms
+object "mainMenuUI" as menu
+object "pauseOverlayUI" as pause
+object "winScreenUI" as win
+
+scene -- st
+st -- player
+st -- bosses
+st -- coins
+st -- platforms
+st -- menu
+st -- pause
+st -- win
+@enduml

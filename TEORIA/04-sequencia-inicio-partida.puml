@@ -1,0 +1,22 @@
+@startuml
+title ECO GUARDIAN - Sequencia de Inicio de Partida
+autonumber
+
+actor Jogador
+participant "MainMenu" as Menu
+participant "game-lifecycle" as Lifecycle
+participant "video-player" as Video
+participant "state" as State
+participant "level-builder" as Builder
+
+Jogador -> Menu : clicar "COMEÇAR JOGO"
+Menu -> Lifecycle : startGame(scene, buildLevel)
+Lifecycle -> Lifecycle : startGameAtLevel(..., 0)
+Lifecycle -> Video : playVideo("Story/Inicial.mp4")
+Video --> Lifecycle : fim ou skip
+Lifecycle -> Lifecycle : askNickname()
+Lifecycle -> State : reset de estado de partida
+Lifecycle -> Builder : buildLevel(scene, currentLevelIndex)
+Builder --> Lifecycle : fase pronta
+Lifecycle --> Jogador : gameplay iniciado
+@enduml

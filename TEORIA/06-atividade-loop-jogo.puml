@@ -1,0 +1,39 @@
+@startuml
+title ECO GUARDIAN - Atividade do Loop de Update
+start
+
+if (hasGameStarted?) then (nao)
+  stop
+endif
+
+if (ESC pressionado e nao game over?) then (sim)
+  :togglePause();
+endif
+
+if (isGameOver?) then (sim)
+  if (R pressionado?) then (sim)
+    :scene.restart();
+  endif
+  stop
+endif
+
+if (isPaused?) then (sim)
+  stop
+endif
+
+if (player/cursors existem?) then (nao)
+  stop
+endif
+
+:atualizar delta de tempo;
+
+if (F pressionado?) then (sim)
+  :shootBullet();
+endif
+
+:cullOffscreenBullets();
+:updatePlayer();
+:updateBoss();
+:bossAttackPlayer();
+stop
+@enduml

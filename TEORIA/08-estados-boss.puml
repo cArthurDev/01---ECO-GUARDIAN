@@ -1,0 +1,15 @@
+@startuml
+title ECO GUARDIAN - Maquina de Estados do Boss
+
+[*] --> Fly
+Fly --> Attack : jogador em alcance e cooldown ok
+Attack --> Fly : fim da animacao boss-attack
+
+Fly --> Hit : recebe dano de bullet
+Attack --> Hit : recebe dano de bullet
+Hit --> Fly : hp > 0 e fim da animacao boss-hit
+
+Hit --> Dying : hp <= 0
+Dying --> Dead : fim animacao boss-die ou timeout
+Dead --> [*]
+@enduml

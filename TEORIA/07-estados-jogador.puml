@@ -1,0 +1,24 @@
+@startuml
+title ECO GUARDIAN - Maquina de Estados do Jogador
+
+[*] --> Idle
+Idle --> Run : mover esquerda/direita
+Run --> Idle : sem input horizontal
+Idle --> Jump : pular no chao
+Run --> Jump : pular no chao
+Jump --> Falling : velocidadeY > 0
+Falling --> Idle : toca no chao sem movimento
+Falling --> Run : toca no chao com movimento
+
+Idle --> Damaged : hit por boss/spike/skeleton
+Run --> Damaged : hit por boss/spike/skeleton
+Jump --> Damaged : hit por boss/spike/skeleton
+Falling --> Damaged : hit por boss/spike/skeleton
+
+Damaged --> Respawn : respawnAtSpawn = true
+Damaged --> Idle : ainda tem vidas e sem respawn
+Respawn --> Idle
+
+Damaged --> GameOver : vidas <= 0
+GameOver --> [*]
+@enduml

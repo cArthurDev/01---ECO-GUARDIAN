@@ -1,0 +1,58 @@
+@startuml
+title ECO GUARDIAN - Diagrama de Componentes
+skinparam componentStyle rectangle
+
+component "game.js\n(bootstrap Phaser)" as Game
+
+package "Core" {
+  component "preload.js" as Preload
+  component "create.js" as Create
+  component "update.js" as Update
+  component "state.js" as State
+  component "game-lifecycle.js" as Lifecycle
+  component "video-player.js" as Video
+}
+
+package "World" {
+  component "constants.js" as Const
+  component "levels.js" as Levels
+  component "level-builder.js" as Builder
+}
+
+package "Entities" {
+  component "player.js" as Player
+  component "boss.js" as Boss
+}
+
+package "UI" {
+  component "main-menu.js" as Menu
+  component "pause-overlay.js" as Pause
+  component "win-screen.js" as Win
+}
+
+Game --> Preload
+Game --> Create
+Game --> Update
+
+Create --> State
+Create --> Lifecycle
+Create --> Builder
+Create --> Menu
+Create --> Pause
+Create --> Win
+
+Update --> State
+Update --> Player
+Update --> Boss
+Update --> Lifecycle
+
+Builder --> State
+Builder --> Levels
+Builder --> Const
+Builder --> Player
+Builder --> Boss
+Builder --> Lifecycle
+
+Lifecycle --> State
+Lifecycle --> Video
+@enduml
