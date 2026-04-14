@@ -2,6 +2,7 @@ import { state } from './state.js';
 import { togglePause } from './game-lifecycle.js';
 import { updatePlayer } from '../entities/player.js';
 import { bossAttackPlayer, updateBoss, updateBossSurvival } from '../entities/boss.js';
+import { updateSkeletonPatrol } from '../world/level-builder.js';
 
 export function update() {
   if (!state.hasGameStarted) return;
@@ -28,6 +29,7 @@ export function update() {
   updateBossSurvival(this, deltaSeconds);
   if (state.isGameOver) return;
 
+  updateSkeletonPatrol(this);
   updatePlayer(this);
   updateBoss(this);
   bossAttackPlayer(this);

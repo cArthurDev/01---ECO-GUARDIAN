@@ -4,7 +4,12 @@ import { triggerWin } from '../core/game-lifecycle.js';
 
 export const BOSS_LEVEL_INDEX = 2;
 const FINAL_BOSS_COUNT = 2;
-const BOSS_SURVIVAL_SECONDS = 10;
+const BOSS_SURVIVAL_SECONDS = 30;
+const BOSS_ATTACK_TRIGGER_DISTANCE = 52;
+const BOSS_ATTACK_HIT_DISTANCE = 46;
+const BOSS_ATTACK_INTERVAL_MS = 1650;
+const BOSS_ENTRY_STAGGER_MS = 320;
+const BOSS_ENTRY_DURATION_MS = 980;
 
 function aliveBossesCount() {
   if (!state.bosses) return 0;
@@ -162,6 +167,15 @@ function ensureBossAnimations(scene) {
       repeat: 0,
     });
   }
+
+  if (!scene.anims.exists('boss-spawn')) {
+    scene.anims.create({
+      key: 'boss-spawn',
+      frames: scene.anims.generateFrameNumbers('boss_spawn', { start: 0, end: 7 }),
+      frameRate: 14,
+      repeat: 0,
+    });
+  }
 }
 
 export function isBossLevel(levelIndex) {
@@ -176,19 +190,44 @@ export function spawnBoss(scene, levelIndex) {
   const startX = scene.scale.width * 0.22;
   const gapX = (scene.scale.width * 0.56) / (bossCount - 1);
   const startY = scene.scale.height * 0.2;
+  const entryY = scene.scale.height + 72;
 
   state.bosses.clear(true, true);
   for (let i = 0; i < bossCount; i += 1) {
-    const boss = state.bosses.create(startX + (gapX * i), startY + ((i % 2) * 24), 'boss_fly', 0);
+    const targetX = startX + (gapX * i);
+    const targetY = startY + ((i % 2) * 24);
+    const boss = state.bosses.create(targetX, entryY, 'boss_spawn', 0);
     boss.setScale(2.2);
     boss.body.allowGravity = false;
     boss.setCollideWorldBounds(true);
     boss.body.setSize(42, 56, true);
+    boss.body.enable = false;
     boss.setData('isDead', false);
+    boss.setData('isSpawning', true);
+    boss.setData('isAttacking', false);
     boss.setData('hp', 1);
     boss.setData('nextAttackMs', 0);
     boss.setAlpha(1).setVisible(true);
-    boss.play('boss-fly');
+    boss.play('boss-spawn');
+
+    scene.tweens.add({
+      targets: boss,
+      y: targetY,
+      delay: i * BOSS_ENTRY_STAGGER_MS,
+      duration: BOSS_ENTRY_DURATION_MS,
+      ease: 'Back.Out',
+      onStart: () => {
+        if (boss && boss.active && !boss.getData('isDead')) {
+          boss.play('boss-spawn', true);
+        }
+      },
+      onComplete: () => {
+        if (!boss || !boss.active || boss.getData('isDead')) return;
+        boss.setData('isSpawning', false);
+        if (boss.body) boss.body.enable = true;
+        boss.play('boss-fly');
+      },
+    });
   }
 
   if (levelIndex === BOSS_LEVEL_INDEX) {
@@ -236,9 +275,10 @@ export function updateBossSurvival(scene, deltaSeconds) {
 }
 
 export function damageBoss(scene, boss, amount = 1) {
-  if (!boss || !boss.active || boss.getData('isDead')) return;
+  if (!boss || !boss.active || boss.getData('isDead') || boss.getData('isSpawning')) return;
 
   boss.setData('hp', Math.max(0, (boss.getData('hp') || 1) - amount));
+  boss.setData('isAttacking', false);
   boss.setAlpha(1).setVisible(true);
   boss.play('boss-hit');
 
@@ -247,17 +287,25 @@ export function damageBoss(scene, boss, amount = 1) {
     boss.body.enable = false;
     boss.setVelocity(0, 0);
     boss.play('boss-die');
-    boss.once('animationcomplete-boss-die', () => {
-      if (boss && boss.active) boss.destroy();
+
+    const onBossRemoved = () => {
       if (state.bossHpText && state.bosses) {
         state.bossHpText.setText(`Bosses: ${state.bosses.countActive(true)}`);
       }
+
+      if (state.currentLevelIndex === BOSS_LEVEL_INDEX && aliveBossesCount() <= 0) {
+        state.bossSurvivalActive = false;
+        triggerWin(scene);
+      }
+    };
+
+    boss.once('animationcomplete-boss-die', () => {
+      if (boss && boss.active) boss.destroy();
+      onBossRemoved();
     });
     scene.time.delayedCall(1400, () => {
       if (boss && boss.active) boss.destroy();
-      if (state.bossHpText && state.bosses) {
-        state.bossHpText.setText(`Bosses: ${state.bosses.countActive(true)}`);
-      }
+      onBossRemoved();
     });
     return;
   }
@@ -274,29 +322,33 @@ export function bossAttackPlayer(scene) {
   if (!state.bosses || !state.player || state.isGameOver || state.isLifeTransition) return;
 
   const now = scene.time.now;
-  let playerDamaged = false;
+  let appliedDamageThisTick = false;
 
   state.bosses.children.each((boss) => {
-    if (!boss || !boss.active || boss.getData('isDead')) return;
+    if (!boss || !boss.active || boss.getData('isDead') || boss.getData('isSpawning')) return;
+    if (boss.getData('isAttacking')) return;
 
     const nextAttackMs = boss.getData('nextAttackMs') || 0;
     if (now < nextAttackMs) return;
 
     const distance = Phaser.Math.Distance.Between(boss.x, boss.y, state.player.x, state.player.y);
-    if (distance > 84) return;
+    if (distance > BOSS_ATTACK_TRIGGER_DISTANCE) return;
 
-    boss.setData('nextAttackMs', now + 1000);
+    boss.setData('nextAttackMs', now + BOSS_ATTACK_INTERVAL_MS);
+    boss.setData('isAttacking', true);
     boss.play('boss-attack');
+
+    if (!appliedDamageThisTick && distance <= BOSS_ATTACK_HIT_DISTANCE) {
+      appliedDamageThisTick = true;
+      losePlayerLife(scene, boss.x);
+    }
+
     boss.once('animationcomplete-boss-attack', () => {
       if (boss && boss.active && !boss.getData('isDead')) {
+        boss.setData('isAttacking', false);
         boss.play('boss-fly');
       }
     });
-
-    if (!playerDamaged) {
-      playerDamaged = true;
-      losePlayerLife(scene, boss.x);
-    }
   });
 }
 
@@ -305,12 +357,17 @@ export function updateBoss(scene) {
 
   let idx = 0;
   state.bosses.children.each((boss) => {
-    if (!boss || !boss.active || boss.getData('isDead')) return;
+    if (!boss || !boss.active || boss.getData('isDead') || boss.getData('isSpawning')) return;
+    if (boss.getData('isAttacking')) {
+      if (boss.body) boss.setVelocity(0, 0);
+      return;
+    }
 
     const offsetX = ((idx % 2 === 0) ? 1 : -1) * (50 + (idx * 8));
-    const offsetY = -120 + ((idx % 3) * 24);
+    const baseOffsetY = idx % 2 === 0 ? -28 : 34;
+    const verticalWave = Math.sin((scene.time.now / 260) + idx) * 92;
     const targetX = state.player.x + offsetX;
-    const targetY = Phaser.Math.Clamp(state.player.y + offsetY, 60, scene.scale.height * 0.6);
+    const targetY = Phaser.Math.Clamp(state.player.y + baseOffsetY + verticalWave, 40, scene.scale.height - 40);
     const angle = Phaser.Math.Angle.Between(boss.x, boss.y, targetX, targetY);
 
     boss.setAlpha(1).setVisible(true);

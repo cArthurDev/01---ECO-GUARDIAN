@@ -6,6 +6,14 @@ import { triggerWin, triggerEnd } from '../core/game-lifecycle.js';
 import { createPlayer } from '../entities/player.js';
 import { damageBoss, destroyBoss, isBossLevel, losePlayerLife, spawnBoss } from '../entities/boss.js';
 
+const SKELETON_PATROL_BASE_SPEED = 62;
+const SKELETON_PATROL_SPEED_STEP = 18;
+const SKELETON_PATROL_SPEED_VARIANCE = 16;
+
+function skeletonPatrolSpeedForLevel(levelIndex) {
+  return SKELETON_PATROL_BASE_SPEED + (Math.max(0, levelIndex) * SKELETON_PATROL_SPEED_STEP);
+}
+
 function ensureSkeletonAnimations(scene) {
   if (!scene.anims.exists('skeleton-idle')) {
     scene.anims.create({
@@ -26,7 +34,9 @@ function ensureSkeletonAnimations(scene) {
   }
 }
 
-function spawnSkeletons(scene, level, offsetX, offsetY, cellSize) {
+function spawnSkeletons(scene, level, levelIndex, offsetX, offsetY, cellSize, blockedSpawnX = null) {
+  const patrolSpeed = skeletonPatrolSpeedForLevel(levelIndex);
+
   level.forEach((row, rowIndex) => {
     let segmentStart = -1;
 
@@ -50,12 +60,28 @@ function spawnSkeletons(scene, level, offsetX, offsetY, cellSize) {
         const middleCol = segmentStart + Math.floor(segmentLength / 2);
         const x = offsetX + middleCol * cellSize + cellSize / 2;
         const platformCenterY = offsetY + rowIndex * cellSize + cellSize / 2;
+        const patrolMinX = offsetX + (segmentStart * cellSize) + (cellSize * 0.35);
+        const patrolMaxX = offsetX + ((segmentEnd + 1) * cellSize) - (cellSize * 0.35);
+
+        const isPlayerSpawnPlatform = blockedSpawnX != null && blockedSpawnX >= patrolMinX && blockedSpawnX <= patrolMaxX;
+        if (isPlayerSpawnPlatform) {
+          segmentStart = -1;
+          continue;
+        }
+
+        const randomSpeedOffset = Phaser.Math.Between(-SKELETON_PATROL_SPEED_VARIANCE, SKELETON_PATROL_SPEED_VARIANCE);
+        const individualPatrolSpeed = Math.max(36, patrolSpeed + randomSpeedOffset);
 
         const skeleton = state.skeletons.create(x, platformCenterY - cellSize, 'skeleton_idle', 0);
         skeleton.setScale(PIXEL_SCALE / 4);
-        skeleton.setImmovable(true);
         skeleton.body.allowGravity = false;
         skeleton.body.setSize(42, 56, true);
+        skeleton.setData('patrolMinX', patrolMinX);
+        skeleton.setData('patrolMaxX', patrolMaxX);
+        skeleton.setData('patrolDirection', Phaser.Math.Between(0, 1) === 0 ? -1 : 1);
+        skeleton.setData('patrolSpeed', individualPatrolSpeed);
+        skeleton.setData('turnPauseMs', Phaser.Math.Between(120, 220));
+        skeleton.setData('nextMoveMs', 0);
         skeleton.setData('isDead', false);
         skeleton.play('skeleton-idle');
       }
@@ -157,6 +183,73 @@ function handleSkeletonCollision(scene, player, skeleton) {
   losePlayerLife(scene, skeleton.x);
 }
 
+function handleBossCollision(scene, player, boss) {
+  if (!player || !boss || state.isGameOver || boss.getData('isDead') || boss.getData('isSpawning')) return;
+
+  const playerBody = player.body;
+  const bossBody = boss.body;
+  if (!playerBody || !bossBody) return;
+
+  const playerCenterX = playerBody.x + (playerBody.width / 2);
+  const bossCenterX = bossBody.x + (bossBody.width / 2);
+  const horizontalOverlap = Math.abs(playerCenterX - bossCenterX) <= (bossBody.width * 0.62);
+
+  // Mantem a leitura de stomp consistente mesmo quando a velocidade vertical zera no frame da colisao.
+  const isFalling = playerBody.velocity.y >= 0 || playerBody.deltaY() > 0;
+  const isAboveNow = playerBody.bottom <= bossBody.top + 22;
+  const wasAboveBefore = playerBody.prev.y + playerBody.height <= bossBody.prev.y + 12;
+  const isStomp = horizontalOverlap && isFalling && (isAboveNow || wasAboveBefore);
+
+  if (!isStomp) return;
+
+  player.setVelocityY(-430);
+  damageBoss(scene, boss, 99);
+}
+
+export function updateSkeletonPatrol(scene) {
+  if (!state.skeletons) return;
+
+  const now = scene?.time?.now || 0;
+
+  state.skeletons.children.each((skeleton) => {
+    if (!skeleton || !skeleton.active || skeleton.getData('isDead')) return;
+
+    const patrolMinX = skeleton.getData('patrolMinX');
+    const patrolMaxX = skeleton.getData('patrolMaxX');
+    if (patrolMinX == null || patrolMaxX == null) return;
+
+    let patrolDirection = skeleton.getData('patrolDirection') || 1;
+    const patrolSpeed = skeleton.getData('patrolSpeed') || SKELETON_PATROL_BASE_SPEED;
+    const nextMoveMs = skeleton.getData('nextMoveMs') || 0;
+
+    if (now < nextMoveMs) {
+      skeleton.setVelocityX(0);
+      if (!skeleton.anims?.isPlaying || skeleton.anims.currentAnim?.key !== 'skeleton-idle') {
+        skeleton.play('skeleton-idle', true);
+      }
+      return;
+    }
+
+    if (skeleton.x <= patrolMinX) {
+      skeleton.x = patrolMinX;
+      patrolDirection = 1;
+      skeleton.setData('nextMoveMs', now + (skeleton.getData('turnPauseMs') || 160));
+    } else if (skeleton.x >= patrolMaxX) {
+      skeleton.x = patrolMaxX;
+      patrolDirection = -1;
+      skeleton.setData('nextMoveMs', now + (skeleton.getData('turnPauseMs') || 160));
+    }
+
+    skeleton.setData('patrolDirection', patrolDirection);
+    skeleton.setVelocityX(patrolDirection * patrolSpeed);
+    skeleton.setFlipX(patrolDirection > 0);
+
+    if (!skeleton.anims?.isPlaying || skeleton.anims.currentAnim?.key !== 'skeleton-idle') {
+      skeleton.play('skeleton-idle', true);
+    }
+  });
+}
+
 export function buildLevel(scene, levelIndex) {
   const level = LEVELS[levelIndex];
   const sceneWidth = scene.scale.width;
@@ -232,14 +325,14 @@ export function buildLevel(scene, levelIndex) {
   });
 
   if (!bossLevel) {
-    spawnSkeletons(scene, level, offsetX, offsetY, cellSize);
+    spawnSkeletons(scene, level, levelIndex, offsetX, offsetY, cellSize, spawnPoint.x);
   }
 
   state.player = createPlayer(scene, spawnPoint, levelIndex);
   state.playerSpawnPoint = { x: spawnPoint.x, y: spawnPoint.y };
 
   if (bossLevel) {
-    spawnBoss(scene, levelIndex);
+    state.bossHpText.setText('Colete todas as frutas...').setVisible(true);
   } else {
     state.bossHpText.setVisible(false);
   }
@@ -266,6 +359,11 @@ export function buildLevel(scene, levelIndex) {
     killSkeleton(scene, skeleton);
   });
   if (bossLevel) {
+    state.playerBossCollider = scene.physics.add.overlap(
+      state.player,
+      state.bosses,
+      (player, boss) => handleBossCollision(scene, player, boss),
+    );
     state.bulletBossOverlap = scene.physics.add.overlap(state.bullets, state.bosses, (bullet, boss) => {
       if (!bullet || !boss || !bullet.active || boss.getData('isDead') || bullet.getData('bossHitApplied')) return;
       bullet.setData('bossHitApplied', true);
@@ -274,6 +372,7 @@ export function buildLevel(scene, levelIndex) {
       damageBoss(scene, boss, 1);
     });
   } else {
+    state.playerBossCollider = null;
     state.bulletBossOverlap = null;
   }
 
@@ -291,6 +390,14 @@ export function buildLevel(scene, levelIndex) {
     }
     if (!bossLevel && state.coins.countActive(true) === 0) {
       goToNextLevel(scene);
+    }
+    if (
+      bossLevel
+      && state.coins.countActive(true) === 0
+      && !state.bossSurvivalActive
+      && (!state.bosses || state.bosses.countActive(true) === 0)
+    ) {
+      spawnBoss(scene, levelIndex);
     }
   });
 

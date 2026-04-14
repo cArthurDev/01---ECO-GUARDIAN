@@ -57,7 +57,11 @@ export function preload() {
     frameWidth: 64,
     frameHeight: 64,
   });
-  this.load.spritesheet('boss_die', 'images/Enemy3/Enemy3-Movement-In-Animation/Enemy3-Die.png', {
+  this.load.spritesheet('boss_die', 'images/Enemy3/Enemy3-No-Movement-In-Animation/Enemy3No-Move-Die.png', {
+    frameWidth: 64,
+    frameHeight: 64,
+  });
+  this.load.spritesheet('boss_spawn', 'images/Enemy3/Enemy3-No-Movement-In-Animation/Enemy3No-Move-SmashEnd.png', {
     frameWidth: 64,
     frameHeight: 64,
   });

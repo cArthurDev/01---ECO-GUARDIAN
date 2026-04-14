@@ -69,7 +69,7 @@ export function create() {
     padding: { x: 10, y: 6 },
   }).setVisible(false);
 
-  state.pointsSprite = this.add.image(28, 30, 'points_1')
+  state.pointsSprite = this.add.image(10, 40, 'points_1')
     .setOrigin(0, 0.5)
     .setScale(2.6)
     .setDepth(20)
@@ -230,7 +230,7 @@ export function create() {
     state.mainMenu.jogarButton.setBaseScale(menuButtonWidth / state.mainMenu.jogarButton.baseTextureWidth);
     state.mainMenu.sobreButton.setPosition(menuButtonOffset, 180);
     state.mainMenu.sobreButton.setBaseScale(menuButtonWidth / state.mainMenu.sobreButton.baseTextureWidth);
-    state.pointsSprite.setPosition(28, 30);
+    state.pointsSprite.setPosition(10, 40);
     state.pauseOverlay.container.setPosition(width / 2, height / 2);
     state.pauseOverlay.background.setSize(width * 0.55, height * 0.4);
     state.pauseOverlay.voltarButton.setPosition(0, 50);
