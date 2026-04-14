@@ -1,12 +1,58 @@
 import { state } from '../core/state.js';
 import { triggerEnd } from '../core/game-lifecycle.js';
+import { triggerWin } from '../core/game-lifecycle.js';
 
 export const BOSS_LEVEL_INDEX = 2;
+const FINAL_BOSS_COUNT = 2;
+const BOSS_SURVIVAL_SECONDS = 10;
+
+function aliveBossesCount() {
+  if (!state.bosses) return 0;
+
+  let count = 0;
+  state.bosses.children.each((boss) => {
+    if (!boss || !boss.active || boss.getData('isDead')) return;
+    count += 1;
+  });
+  return count;
+}
+
+function updateSurvivalLabel() {
+  if (!state.bossHpText) return;
+
+  const remainingBosses = aliveBossesCount();
+  const remainingSeconds = Math.ceil(state.bossSurvivalRemainingSeconds);
+  state.bossHpText.setText(`Bosses: ${remainingBosses} | Proximo em: ${remainingSeconds}s`).setVisible(true);
+}
+
+function eliminateOneBoss(scene) {
+  if (!state.bosses) return;
+
+  let targetBoss = null;
+  state.bosses.children.each((boss) => {
+    if (targetBoss || !boss || !boss.active || boss.getData('isDead')) return;
+    targetBoss = boss;
+  });
+
+  if (!targetBoss) return;
+
+  targetBoss.setData('isDead', true);
+  targetBoss.body.enable = false;
+  targetBoss.setVelocity(0, 0);
+  targetBoss.play('boss-die');
+  targetBoss.once('animationcomplete-boss-die', () => {
+    if (targetBoss && targetBoss.active) targetBoss.destroy();
+  });
+  scene.time.delayedCall(1400, () => {
+    if (targetBoss && targetBoss.active) targetBoss.destroy();
+  });
+}
 
 function heartTextureForLives(lives) {
   if (lives >= 3) return 'heart_full';
   if (lives === 2) return 'heart_two';
-  return 'heart_one';
+  if (lives === 1) return 'heart_one';
+  return 'heart_zero';
 }
 
 export function losePlayerLife(scene, sourceX = null, options = {}) {
@@ -126,7 +172,7 @@ export function spawnBoss(scene, levelIndex) {
   ensureBossAnimations(scene);
   if (!state.bosses) return;
 
-  const bossCount = levelIndex === 2 ? 3 : 5;
+  const bossCount = levelIndex === BOSS_LEVEL_INDEX ? FINAL_BOSS_COUNT : 5;
   const startX = scene.scale.width * 0.22;
   const gapX = (scene.scale.width * 0.56) / (bossCount - 1);
   const startY = scene.scale.height * 0.2;
@@ -145,6 +191,15 @@ export function spawnBoss(scene, levelIndex) {
     boss.play('boss-fly');
   }
 
+  if (levelIndex === BOSS_LEVEL_INDEX) {
+    state.bossSurvivalActive = true;
+    state.bossSurvivalRemainingSeconds = BOSS_SURVIVAL_SECONDS;
+    updateSurvivalLabel();
+    return;
+  }
+
+  state.bossSurvivalActive = false;
+  state.bossSurvivalRemainingSeconds = 0;
   state.bossHpText.setText(`Bosses: ${state.bosses.countActive(true)}`).setVisible(true);
 }
 
@@ -153,7 +208,31 @@ export function destroyBoss() {
   state.boss = null;
   state.bossHealth = 0;
   state.bossHitsTaken = 0;
+  state.bossSurvivalActive = false;
+  state.bossSurvivalRemainingSeconds = 0;
   if (state.bossHpText) state.bossHpText.setVisible(false);
+}
+
+export function updateBossSurvival(scene, deltaSeconds) {
+  if (!state.bossSurvivalActive || state.currentLevelIndex !== BOSS_LEVEL_INDEX || state.isGameOver) return;
+
+  state.bossSurvivalRemainingSeconds = Math.max(0, state.bossSurvivalRemainingSeconds - deltaSeconds);
+  updateSurvivalLabel();
+
+  if (state.bossSurvivalRemainingSeconds > 0) return;
+
+  eliminateOneBoss(scene);
+  const remainingBosses = aliveBossesCount();
+
+  if (remainingBosses <= 0) {
+    state.bossSurvivalActive = false;
+    if (state.bosses) state.bosses.clear(true, true);
+    triggerWin(scene);
+    return;
+  }
+
+  state.bossSurvivalRemainingSeconds = BOSS_SURVIVAL_SECONDS;
+  updateSurvivalLabel();
 }
 
 export function damageBoss(scene, boss, amount = 1) {

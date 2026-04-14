@@ -1,3 +1,6 @@
+import { createImageButton } from './image-button.js';
+import { togglePause } from '../core/game-lifecycle.js';
+
 export function buildPauseOverlay(scene, w, h) {
   const container = scene.add.container(w / 2, h / 2).setDepth(65).setVisible(false);
 
@@ -11,13 +14,9 @@ export function buildPauseOverlay(scene, w, h) {
     align: 'center',
   }).setOrigin(0.5);
 
-  const hint = scene.add.text(0, 35, 'Pressione ESC para continuar', {
-    fontFamily: 'Trebuchet MS, sans-serif',
-    fontSize: '24px',
-    color: '#63d98a',
-    align: 'center',
-  }).setOrigin(0.5);
+  const voltarButtonWidth = Math.min(w * 0.18, 240);
+  const voltarButton = createImageButton(scene, 'button_voltar', 0, 50, voltarButtonWidth, () => togglePause(scene));
 
-  container.add([background, title, hint]);
-  return { container, background };
+  container.add([background, title, voltarButton]);
+  return { container, background, voltarButton };
 }

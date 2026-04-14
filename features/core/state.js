@@ -1,8 +1,7 @@
-export const state = {
+ export const state = {
   player: null,
   cursors: null,
   jumpKey: null,
-  shootKey: null,
   wasdKeys: null,
   restartKey: null,
   pauseKey: null,
@@ -21,6 +20,8 @@ export const state = {
   ranking: [],
   playerLives: 3,
   heartSprite: null,
+  phaseSprite: null,
+  pointsSprite: null,
   isLifeTransition: false,
   scoreText: null,
   levelText: null,
@@ -34,12 +35,12 @@ export const state = {
   playerSpawnPoint: null,
   elapsedTimeSeconds: 0,
   lastTickMs: 0,
-  lastShotMs: 0,
-  shotCooldownMs: 450,
   playerFacing: 1,
   nextBossAttackMs: 0,
   nextPlayerDamageMs: 0,
   playerDamageCooldownMs: 1100,
+  bossSurvivalActive: false,
+  bossSurvivalRemainingSeconds: 0,
 
   winScreen: null,
   mainMenu: null,

@@ -51,21 +51,27 @@ export function playVideo(videoPath, onComplete) {
 
     const skipButton = document.createElement('button');
     skipButton.type = 'button';
-    skipButton.textContent = 'Pular';
     skipButton.style.cssText = `
       position: absolute;
       right: 24px;
       bottom: 24px;
-      padding: 10px 16px;
-      border: 2px solid #ffffff;
-      border-radius: 10px;
-      background: rgba(0, 0, 0, 0.55);
-      color: #ffffff;
-      font: 700 14px "Trebuchet MS", "Segoe UI", sans-serif;
-      letter-spacing: 0.2px;
+      padding: 0;
+      border: 0;
+      background: transparent;
       cursor: pointer;
       z-index: 2;
     `;
+    const skipImage = document.createElement('img');
+    skipImage.src = './images/botões/BOTAO_PULAR.png';
+    skipImage.alt = 'Pular';
+    skipImage.style.cssText = `
+      display: block;
+      width: min(22vw, 240px);
+      height: auto;
+      user-select: none;
+      pointer-events: none;
+    `;
+    skipButton.appendChild(skipImage);
     skipButton.addEventListener('click', finishPlayback);
 
     video.addEventListener('ended', () => {

@@ -2,7 +2,7 @@ import { state } from './state.js';
 import { buildMainMenu } from '../ui/main-menu.js';
 import { buildWinScreen } from '../ui/win-screen.js';
 import { buildPauseOverlay } from '../ui/pause-overlay.js';
-import { startGame, startGameAtLevel } from './game-lifecycle.js';
+import { setControlsHintVisible, startGame, startGameAtLevel } from './game-lifecycle.js';
 import { buildLevel } from '../world/level-builder.js';
 
 /* global Phaser */
@@ -22,6 +22,8 @@ export function create() {
   state.elapsedTimeSeconds = 0;
   state.lastTickMs         = this.time.now;
   state.lastShotMs         = 0;
+
+  setControlsHintVisible(false);
 
   if (this.textures.exists('background')) {
     state.backgroundImage = this.add.image(sceneWidth / 2, sceneHeight / 2, 'background')
@@ -58,7 +60,6 @@ export function create() {
   });
   state.restartKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.R);
   state.pauseKey   = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
-  state.shootKey   = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.F);
 
   state.scoreText = this.add.text(20, 20, 'Pontos: 0', {
     fontFamily: 'Trebuchet MS, sans-serif',
@@ -68,6 +69,13 @@ export function create() {
     padding: { x: 10, y: 6 },
   }).setVisible(false);
 
+  state.pointsSprite = this.add.image(28, 30, 'points_1')
+    .setOrigin(0, 0.5)
+    .setScale(2.6)
+    .setDepth(20)
+    .setVisible(false);
+  state.pointsSprite.baseScale = 2.6;
+
   state.levelText = this.add.text(20, 58, 'Level: 1/3', {
     fontFamily: 'Trebuchet MS, sans-serif',
     fontSize: '22px',
@@ -75,6 +83,12 @@ export function create() {
     backgroundColor: '#ffffffaa',
     padding: { x: 10, y: 6 },
   }).setVisible(false);
+
+  state.phaseSprite = this.add.image(72, 82, 'phase_one')
+    .setScale(2.6)
+    .setDepth(20)
+    .setVisible(false);
+  state.phaseSprite.baseScale = 2.6;
 
   state.heartSprite = this.add.image(72, 124, 'heart_full')
     .setScale(2.6)
@@ -99,7 +113,16 @@ export function create() {
   }).setOrigin(0.5).setDepth(50).setVisible(false);
 
   state.winScreen    = buildWinScreen(this, sceneWidth, sceneHeight);
-  state.mainMenu     = buildMainMenu(this, sceneWidth, sceneHeight, (scene) => startGame(scene, buildLevel));
+  state.mainMenu     = buildMainMenu(
+    this,
+    sceneWidth,
+    sceneHeight,
+    (scene) => startGame(scene, buildLevel),
+    (scene) => {
+      scene.scene.pause();
+      scene.scene.launch('about-scene', { returnSceneKey: scene.scene.key });
+    },
+  );
   state.pauseOverlay = buildPauseOverlay(this, sceneWidth, sceneHeight);
 
   let scoreTapCount = 0;
@@ -164,10 +187,10 @@ export function create() {
     debugHint,
   ]);
 
-  state.scoreText
+  state.pointsSprite
     .setInteractive({ useHandCursor: true })
     .on('pointerdown', () => {
-      if (!state.hasGameStarted || !state.scoreText.visible) return;
+      if (!state.hasGameStarted || !state.pointsSprite.visible) return;
 
       const now = this.time.now;
       if (now - lastScoreTapMs > secretTapWindowMs) {
@@ -200,10 +223,18 @@ export function create() {
     state.gameOverText.setPosition(width / 2, height / 2);
     state.winScreen.container.setPosition(width / 2, height / 2);
     state.mainMenu.container.setPosition(width / 2, height / 2);
-    state.mainMenu.background.setSize(width * 0.65, height * 0.65);
-    state.mainMenu.logo.setScale(Math.min(width / 900, height / 700) * 0.7);
+    state.mainMenu.background.setDisplaySize(width, height);
+    const menuButtonWidth = Math.min(width * 0.22, 280);
+    const menuButtonOffset = Math.max(menuButtonWidth * 0.7, 180);
+    state.mainMenu.jogarButton.setPosition(-menuButtonOffset, 180);
+    state.mainMenu.jogarButton.setBaseScale(menuButtonWidth / state.mainMenu.jogarButton.baseTextureWidth);
+    state.mainMenu.sobreButton.setPosition(menuButtonOffset, 180);
+    state.mainMenu.sobreButton.setBaseScale(menuButtonWidth / state.mainMenu.sobreButton.baseTextureWidth);
+    state.pointsSprite.setPosition(28, 30);
     state.pauseOverlay.container.setPosition(width / 2, height / 2);
     state.pauseOverlay.background.setSize(width * 0.55, height * 0.4);
+    state.pauseOverlay.voltarButton.setPosition(0, 50);
+    state.pauseOverlay.voltarButton.setBaseScale(Math.min(width * 0.18, 240) / state.pauseOverlay.voltarButton.baseTextureWidth);
 
     debugMenu.setPosition(width / 2, height / 2);
     debugBackdrop.setSize(width, height);

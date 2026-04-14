@@ -61,6 +61,15 @@ function buildRankingLines(entries) {
     .join('\n');
 }
 
+export function setControlsHintVisible(isVisible) {
+  if (typeof document === 'undefined') return;
+
+  const controlsHint = document.getElementById('controls-hint');
+  if (!controlsHint) return;
+
+  controlsHint.style.display = isVisible ? 'block' : 'none';
+}
+
 export function startGame(scene, buildLevelFn) {
   startGameAtLevel(scene, buildLevelFn, 0);
 }
@@ -72,6 +81,7 @@ export async function startGameAtLevel(scene, buildLevelFn, levelIndex) {
   }
 
   state.currentNickname = askNickname();
+  setControlsHintVisible(true);
 
   state.hasGameStarted = true;
   state.isGameOver = false;
@@ -89,10 +99,16 @@ export async function startGameAtLevel(scene, buildLevelFn, levelIndex) {
   state.gameOverText.setVisible(false);
   scene.physics.world.resume();
 
-  state.scoreText.setText('Pontos: 0').setVisible(true);
-  state.levelText.setText(`Level: ${state.currentLevelIndex + 1}/3`).setVisible(true);
+  state.scoreText.setVisible(false);
+  if (state.pointsSprite) {
+    state.pointsSprite.setTexture('points_1').setAlpha(1).setScale(state.pointsSprite.baseScale || 2.6).setVisible(true);
+  }
+  state.levelText.setVisible(false);
   if (state.heartSprite) {
     state.heartSprite.setTexture('heart_full').setAlpha(1).setScale(2.6).setVisible(true);
+  }
+  if (state.phaseSprite) {
+    state.phaseSprite.setAlpha(1).setScale(state.phaseSprite.baseScale || 2.1).setVisible(true);
   }
   state.bossHpText.setVisible(false);
 

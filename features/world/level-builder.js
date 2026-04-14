@@ -82,17 +82,75 @@ function killSkeleton(scene, skeleton) {
   });
 }
 
+function phaseTextureForLevel(levelIndex) {
+  if (levelIndex <= 0) return 'phase_one';
+  if (levelIndex === 1) return 'phase_two';
+  return 'phase_three';
+}
+
+function updatePhaseIndicator(scene, levelIndex) {
+  const phaseSprite = state.phaseSprite;
+  if (!phaseSprite) return;
+
+  const nextTexture = phaseTextureForLevel(levelIndex);
+  const currentTexture = phaseSprite.texture?.key;
+  const baseScale = phaseSprite.baseScale || 2.1;
+
+  phaseSprite.setVisible(true);
+  if (!currentTexture || currentTexture === nextTexture) {
+    phaseSprite.setTexture(nextTexture).setAlpha(1).setScale(baseScale);
+    return;
+  }
+
+  scene.tweens.add({
+    targets: phaseSprite,
+    scale: baseScale * 1.12,
+    duration: 120,
+    yoyo: true,
+    onComplete: () => {
+      scene.tweens.add({
+        targets: phaseSprite,
+        alpha: 0.2,
+        duration: 120,
+        onComplete: () => {
+          phaseSprite.setTexture(nextTexture);
+          scene.tweens.add({
+            targets: phaseSprite,
+            alpha: 1,
+            scale: baseScale,
+            duration: 150,
+          });
+        },
+      });
+    },
+  });
+}
+
+function pointsTextureForScore(score) {
+  const stage = Math.floor(score / 50) + 1;
+  const clampedStage = Math.max(1, Math.min(stage, 7));
+  return `points_${clampedStage}`;
+}
+
 function handleSkeletonCollision(scene, player, skeleton) {
   if (!player || !skeleton || state.isGameOver || skeleton.getData('isDead')) return;
 
-  const isFalling = player.body.velocity.y > 0;
-  const isAboveNow = player.body.bottom <= skeleton.body.top + 20;
-  const wasAboveBefore = player.body.prev.y + player.body.height <= skeleton.body.prev.y + 10;
-  const isStomp = isFalling && (isAboveNow || wasAboveBefore);
+  const playerBody = player.body;
+  const skeletonBody = skeleton.body;
+
+  const playerCenterX = playerBody.x + (playerBody.width / 2);
+  const skeletonCenterX = skeletonBody.x + (skeletonBody.width / 2);
+  const horizontalOverlap = Math.abs(playerCenterX - skeletonCenterX) <= (skeletonBody.width * 0.6);
+
+  // No frame da colisao o velocity.y pode zerar, por isso usamos deltaY e posicao anterior.
+  const isFalling = playerBody.velocity.y >= 0 || playerBody.deltaY() > 0;
+  const isAboveNow = playerBody.bottom <= skeletonBody.top + 24;
+  const wasAboveBefore = playerBody.prev.y + playerBody.height <= skeletonBody.prev.y + 14;
+  const isStomp = horizontalOverlap && isFalling && (isAboveNow || wasAboveBefore);
 
   if (isStomp) {
     killSkeleton(scene, skeleton);
-    player.setVelocityY(-380);
+    player.setVelocityY(-420);
     return;
   }
 
@@ -228,13 +286,15 @@ export function buildLevel(scene, levelIndex) {
     if (state.isGameOver) return;
     coin.disableBody(true, true);
     state.score += 10;
-    state.scoreText.setText(`Pontos: ${state.score}`);
-    if (state.coins.countActive(true) === 0) {
+    if (state.pointsSprite) {
+      state.pointsSprite.setTexture(pointsTextureForScore(state.score));
+    }
+    if (!bossLevel && state.coins.countActive(true) === 0) {
       goToNextLevel(scene);
     }
   });
 
-  state.levelText.setText(`Level: ${levelIndex + 1}/3`);
+  updatePhaseIndicator(scene, levelIndex);
 }
 
 export function goToNextLevel(scene) {
