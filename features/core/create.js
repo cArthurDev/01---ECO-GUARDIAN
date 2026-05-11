@@ -37,13 +37,6 @@ export function create() {
     this.cameras.main.setBackgroundColor('#87ceeb');
   }
 
-  if (this.textures.exists('clouds')) {
-    state.cloudsImage = this.add.image(sceneWidth / 2, sceneHeight / 2, 'clouds')
-      .setDisplaySize(sceneWidth, sceneHeight)
-      .setDepth(-9)
-      .setAlpha(0.75);
-  }
-
   state.platforms = this.physics.add.staticGroup();
   state.coins     = this.physics.add.group();
   state.spikes    = this.physics.add.staticGroup();
@@ -213,11 +206,6 @@ export function create() {
     if (state.backgroundImage) {
       state.backgroundImage.setPosition(width / 2, height / 2);
       state.backgroundImage.setDisplaySize(width, height);
-    }
-
-    if (state.cloudsImage) {
-      state.cloudsImage.setPosition(width / 2, height / 2);
-      state.cloudsImage.setDisplaySize(width, height);
     }
 
     state.gameOverText.setPosition(width / 2, height / 2);

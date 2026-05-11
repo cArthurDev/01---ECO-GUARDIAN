@@ -34,15 +34,14 @@ export function preload() {
   this.load.image('points_6', 'images/Points/6_Points.png');
   this.load.image('points_7', 'images/Points/7_Points.png');
   this.load.image('background', 'images/Sprites/background.jpg');
-  this.load.image('clouds',     'images/Sprites/cloud.png');
 
-  this.load.spritesheet('skeleton_idle', 'images/Skeleton/skeleton_Idle.png', {
-    frameWidth: 64,
-    frameHeight: 64,
+  this.load.spritesheet('BOAR_idle', 'images/Boar/boar_Idle.png', {
+    frameWidth: 48,
+    frameHeight: 32,
   });
-  this.load.spritesheet('skeleton_hurt', 'images/Skeleton/skeleton_Hurt.png', {
-    frameWidth: 64,
-    frameHeight: 64,
+  this.load.spritesheet('BOAR_hurt', 'images/Boar/boar_Hit.png', {
+    frameWidth: 48,
+    frameHeight: 32,
   });
 
   this.load.spritesheet('boss_fly', 'images/Enemy3/Enemy3-Movement-In-Animation/Enemy3-Fly.png', {

@@ -13,7 +13,6 @@
   bosses: null,
   bullets: null,
   backgroundImage: null,
-  cloudsImage: null,
 
   score: 0,
   currentNickname: '',

@@ -18,7 +18,7 @@ function ensureSkeletonAnimations(scene) {
   if (!scene.anims.exists('skeleton-idle')) {
     scene.anims.create({
       key: 'skeleton-idle',
-      frames: scene.anims.generateFrameNumbers('skeleton_idle', { start: 0, end: 5 }),
+      frames: scene.anims.generateFrameNumbers('BOAR_idle', { start: 0, end: 3 }),
       frameRate: 8,
       repeat: -1,
     });
@@ -27,7 +27,7 @@ function ensureSkeletonAnimations(scene) {
   if (!scene.anims.exists('skeleton-hurt')) {
     scene.anims.create({
       key: 'skeleton-hurt',
-      frames: scene.anims.generateFrameNumbers('skeleton_hurt', { start: 0, end: 1 }),
+      frames: scene.anims.generateFrameNumbers('BOAR_hurt', { start: 0, end: 3 }),
       frameRate: 10,
       repeat: 0,
     });
@@ -72,10 +72,11 @@ function spawnSkeletons(scene, level, levelIndex, offsetX, offsetY, cellSize, bl
         const randomSpeedOffset = Phaser.Math.Between(-SKELETON_PATROL_SPEED_VARIANCE, SKELETON_PATROL_SPEED_VARIANCE);
         const individualPatrolSpeed = Math.max(36, patrolSpeed + randomSpeedOffset);
 
-        const skeleton = state.skeletons.create(x, platformCenterY - cellSize, 'skeleton_idle', 0);
+        const skeleton = state.skeletons.create(x, platformCenterY - (cellSize * 0.75), 'BOAR_idle', 0);
         skeleton.setScale(PIXEL_SCALE / 4);
         skeleton.body.allowGravity = false;
-        skeleton.body.setSize(42, 56, true);
+        skeleton.body.setSize(30, 14);
+        skeleton.body.setOffset(9, 18);
         skeleton.setData('patrolMinX', patrolMinX);
         skeleton.setData('patrolMaxX', patrolMaxX);
         skeleton.setData('patrolDirection', Phaser.Math.Between(0, 1) === 0 ? -1 : 1);
